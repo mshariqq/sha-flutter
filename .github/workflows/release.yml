@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Update version in script
+        run: |
+          sed -i "s/SHA_FLUTTER_VERSION=\".*\"/SHA_FLUTTER_VERSION=\"${{ steps.version.outputs.VERSION }}\"/" sha-flutter.sh
+
+      - name: Create release archive
+        run: |
+          tar -czf sha-flutter-${{ steps.version.outputs.VERSION }}.tar.gz \
+            sha-flutter.sh install.sh uninstall.sh README.md LICENSE CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "sha-flutter v${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## sha-flutter v${{ steps.version.outputs.VERSION }}
+
+            Flutter version manager for Linux — install, switch & remove Flutter versions.
+
+            ### Install / Update
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/mshariqq/sha-flutter/main/install.sh | bash
+            ```
+            Or update from within the tool:
+            ```bash
+            sha-flutter self-update
+            ```
+
+            ### What's Changed
+            See [CHANGELOG.md](https://github.com/mshariqq/sha-flutter/blob/main/CHANGELOG.md)
+
+            ---
+            Made with ❤️ by [Muhammed Shariq Ahmed](https://mshariqq.github.io/mshariqq/)
+          files: |
+            sha-flutter.sh
+            install.sh
+            uninstall.sh
+            sha-flutter-${{ steps.version.outputs.VERSION }}.tar.gz
+          draft: false
+          prerelease: false
